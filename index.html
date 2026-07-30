@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0b1020">
+  <meta name="description" content="Tanjai Video Studio — ตัดต่อจากคลิปจริงและสร้างวิดีโอใหม่ด้วย AI">
+  <title>Tanjai Video Studio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css?v=0.1.0">
+</head>
+<body>
+  <div class="ambient ambient-one"></div>
+  <div class="ambient ambient-two"></div>
+  <header class="topbar">
+    <a class="brand" href="./" aria-label="Tanjai Video Studio">
+      <img src="https://thanawid.github.io/tanjai-ai-studio/assets/logo.jpg" alt="">
+      <span><b>Tanjai Video Studio</b><small>ส่วนหนึ่งของ ทันใจ AI Studio</small></span>
+    </a>
+    <nav>
+      <button class="ghost compact" id="openProjects" type="button">โครงการของฉัน</button>
+      <a class="ghost compact" id="backToMain" href="https://thanawid.github.io/tanjai-ai-studio/#video">← กลับทันใจ AI</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="eyebrow">TANJAI VIDEO WORKSPACE <span>Prototype 0.1</span></div>
+      <h1>จากฟุตเทจที่มี<br><em>หรือจากเรื่องที่คิด</em></h1>
+      <p>เลือกทางเริ่มต้น แล้วให้ทันใจพางานไปจนถึงวิดีโอพร้อมใช้ โดยคุณตรวจและแก้ได้ทุกช่วง</p>
+      <div class="handoff" id="handoffBanner" hidden>
+        <span class="pulse"></span>
+        <div><b>รับโครงการจากทันใจแล้ว</b><small id="handoffText"></small></div>
+        <button class="text-button" id="clearHandoff" type="button">เริ่มใหม่</button>
+      </div>
+    </section>
+
+    <section class="mode-grid" aria-label="เลือกวิธีสร้างวิดีโอ">
+      <article class="mode-card footage-card">
+        <div class="mode-top">
+          <span class="mode-number">01</span>
+          <span class="status ready">พร้อมทดลอง</span>
+        </div>
+        <div class="mode-icon">🎞️</div>
+        <h2>ตัดต่อจากคลิปที่มี</h2>
+        <p>รับคลิปที่เตรียมจากทันใจ หรือเพิ่มจากเครื่อง ให้ AI ช่วยคัดช็อต วางเรื่อง และจัด Timeline</p>
+        <ul>
+          <li>รองรับโครงการฟุตเทจจำนวนมาก</li>
+          <li>เลือกแนวข่าว กิจกรรม Reel หรือไฮไลต์</li>
+          <li>ตรวจทุกช็อตก่อนส่งออก</li>
+        </ul>
+        <button class="primary" data-mode="footage" type="button">เริ่มจากคลิปของฉัน <span>→</span></button>
+      </article>
+
+      <article class="mode-card generate-card">
+        <div class="mode-top">
+          <span class="mode-number">02</span>
+          <span class="status planned">วางระบบแล้ว</span>
+        </div>
+        <div class="mode-icon">✨</div>
+        <h2>สร้างวิดีโอใหม่ด้วย AI</h2>
+        <p>เริ่มจากหัวข้อหรือพล็อต ให้ AI แบ่งฉาก สร้าง Storyboard ภาพ เสียง และประกอบเป็นวิดีโอ</p>
+        <ul>
+          <li>มีแนวประชาสัมพันธ์ นิทาน MV และหนังสั้น</li>
+          <li>กำหนดภาพ แสง สี เสียง และสัดส่วน</li>
+          <li>รักษาอัตลักษณ์บุคคลจากภาพอ้างอิง</li>
+        </ul>
+        <button class="primary" data-mode="generate" type="button">เริ่มสร้างเรื่องใหม่ <span>→</span></button>
+      </article>
+    </section>
+
+    <section class="workspace" id="workspace" hidden>
+      <div class="workspace-head">
+        <div>
+          <span class="step-label" id="workspaceLabel">โหมดตัดต่อจากคลิป</span>
+          <h2 id="workspaceTitle">สร้างโครงการใหม่</h2>
+        </div>
+        <button class="ghost compact" id="closeWorkspace" type="button">เปลี่ยนโหมด</button>
+      </div>
+
+      <div class="stepper" id="stepper" aria-label="ขั้นตอนทำงาน"></div>
+      <div class="step-panel" id="stepPanel"></div>
+
+      <div class="workspace-actions">
+        <button class="ghost" id="prevStep" type="button">← ย้อนกลับ</button>
+        <span id="saveState">บันทึกร่างอัตโนมัติในเครื่อง</span>
+        <button class="primary" id="nextStep" type="button">ถัดไป →</button>
+      </div>
+    </section>
+
+    <section class="principles">
+      <div><b>ตรวจได้ทุกขั้น</b><span>AI เสนอ คุณเป็นคนอนุมัติ</span></div>
+      <div><b>ไม่อัปโหลดซ้ำ</b><span>ระบบจริงจะรับงานด้วย Project ID</span></div>
+      <div><b>สร้างใหม่เฉพาะฉาก</b><span>ลดเวลาและค่าใช้จ่ายที่ไม่จำเป็น</span></div>
+    </section>
+  </main>
+
+  <dialog id="projectDialog">
+    <div class="dialog-head">
+      <div><small>LOCAL DRAFTS</small><h2>โครงการของฉัน</h2></div>
+      <button class="icon-button" id="closeProjects" type="button" aria-label="ปิด">×</button>
+    </div>
+    <div id="projectList" class="project-list"></div>
+  </dialog>
+
+  <footer>
+    <span>© 2026 Tanjai Video Studio</span>
+    <span>เชื่อมต่อกับ ทันใจ AI Studio</span>
+  </footer>
+  <script src="app.js?v=0.1.0"></script>
+</body>
+</html>
