@@ -24,6 +24,8 @@
     data: {},
   };
   let selectedClips = [];
+  const clipFiles = new Map();
+  let activePreviewUrl = "";
   const handoffKey = `tanjai-video-handoff:${state.id}`;
   try {
     const handoff = JSON.parse(localStorage.getItem(handoffKey) || "null");
@@ -52,24 +54,20 @@
         ["อบอุ่น", "สีอุ่น เล่าเรื่องเป็นกันเอง"],
         ["กำหนดเอง", "ตั้งกฎการตัดต่อด้วยตัวเอง"],
       ]),
-      () => summary("แผนงานที่ AI จะจัดให้", [
+      () => summary("แผนงานที่ระบบจะจัดให้", [
         ["วิเคราะห์คลิป", `${state.data.clipCount || 0} คลิป`],
         ["แนวที่เลือก", state.data.style || "ข่าว / งานกิจกรรม"],
-        ["ขั้นตอน", "คัดช็อต → แบ่งหมวด → วางโครงเรื่อง"],
-        ["สถานะ", "ต้นแบบ — ยังไม่เรียก AI จริง"],
-      ], "ระบบจริงจะทำงานผ่านคิวและ Proxy Preview เพื่อรองรับฟุตเทจ 200+ คลิป"),
-      () => summary("Timeline ฉบับร่าง", [
-        ["ช่วงเปิด", "ช็อตเด่น + ชื่อโครงการ"],
-        ["เนื้อหา", "ลำดับเหตุการณ์และบุคคลสำคัญ"],
-        ["ช่วงจบ", "ภาพรวม + โลโก้หน่วยงาน"],
-        ["การตรวจ", "ผู้ใช้แก้ลำดับและความยาวได้ทุกช็อต"],
-      ], "หน้าตัดต่อเต็มรูปแบบจะพัฒนาในขั้นระบบจริง โดยไม่โหลดวิดีโอทุกคลิปเข้าหน่วยความจำพร้อมกัน"),
-      () => summary("พร้อมส่งออก", [
+        ["ขั้นตอน", "อ่าน Metadata → เรียงลำดับ → เปิด Timeline"],
+        ["สถานะ", selectedClips.length ? "พร้อมจัด Timeline" : "รอเพิ่มคลิป"],
+      ], "รุ่นนี้ใช้การจัดลำดับในเครื่อง ยังไม่เรียก AI และไม่ส่งคลิปออกจากอุปกรณ์"),
+      () => renderTimelineEditor(),
+      () => `${summary("พร้อมส่งต่อขั้นเรนเดอร์", [
         ["วิดีโอ", "MP4 H.264"],
-        ["ไฟล์ประกอบ", "SRT · Shot List · Edit Plan"],
-        ["ปลายทาง", "ดาวน์โหลด หรือบันทึกกลับโครงการ"],
-        ["สถานะ", "ต้องเชื่อม FFmpeg Worker ก่อนส่งออกจริง"],
-      ], "ต้นแบบนี้บันทึกแผนโครงการเท่านั้น"),
+        ["ไฟล์ประกอบ", "Edit Plan JSON"],
+        ["Timeline", `${selectedClips.length || state.data.clipCount || 0} คลิป · ${formatTime(timelineDuration())}`],
+        ["สถานะ", "พร้อมนำแผนไปเชื่อม FFmpeg ในขั้นถัดไป"],
+      ], "รุ่น 0.3 บันทึกโครง Timeline จริง แต่ยังไม่เรนเดอร์ MP4")}
+      <button class="primary export-plan" id="downloadEditPlan" type="button">ดาวน์โหลด Edit Plan</button>`,
     ],
     generate: [
       () => fields(`
@@ -121,11 +119,81 @@
     const index = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
     return `${(bytes / (1024 ** index)).toFixed(index > 1 ? 1 : 0)} ${units[index]}`;
   }
+  function formatTime(seconds) {
+    const safe = Math.max(0, Number(seconds) || 0);
+    return `${String(Math.floor(safe / 60)).padStart(2, "0")}:${String(Math.floor(safe % 60)).padStart(2, "0")}`;
+  }
+  function timelineDuration() {
+    return selectedClips.reduce((total, clip) => total + Math.max(0, (clip.end ?? clip.duration ?? 0) - (clip.start || 0)), 0);
+  }
   function renderClipList() {
     if (!selectedClips.length) return `<div class="clip-more">ยังไม่มีคลิปในรายการ</div>`;
     const visible = selectedClips.slice(0, 30);
-    return visible.map((clip, index) => `<div class="clip-row"><i>${String(index + 1).padStart(2, "0")}</i><span><b title="${escapeHtml(clip.name)}">${escapeHtml(clip.name)}</b><small>${formatBytes(clip.size)} · รอวิเคราะห์</small></span><small>พร้อม</small></div>`).join("") +
+    return visible.map((clip, index) => `<div class="clip-row"><i>${String(index + 1).padStart(2, "0")}</i><button class="clip-name" type="button" data-preview-clip="${clip.id}"><b title="${escapeHtml(clip.name)}">${escapeHtml(clip.name)}</b><small>${formatBytes(clip.size)} · ${clip.status === "ready" ? formatTime(clip.duration) : clip.status === "error" ? "อ่านไม่ได้" : "กำลังอ่านข้อมูล"}</small></button><button class="clip-remove" type="button" data-remove-clip="${clip.id}" aria-label="ลบ ${escapeHtml(clip.name)}">×</button></div>`).join("") +
       (selectedClips.length > visible.length ? `<div class="clip-more">และอีก ${selectedClips.length - visible.length} คลิป · เก็บไว้ในคิวโดยไม่สร้าง Preview พร้อมกัน</div>` : "");
+  }
+  function renderTimelineEditor() {
+    if (!selectedClips.length) return `<div class="timeline-empty"><span>🎬</span><b>ยังไม่มีไฟล์วิดีโอในหน่วยความจำ</b><small>ย้อนกลับไปขั้น “เพิ่มคลิป” แล้วเลือกไฟล์อีกครั้ง</small></div>`;
+    const available = selectedClips.find((clip) => clipFiles.has(clip.id));
+    if (!available) return `<div class="timeline-empty"><span>📂</span><b>กรุณาเลือกไฟล์คลิปอีกครั้ง</b><small>เบราว์เซอร์ไม่สามารถเก็บไฟล์ต้นฉบับข้ามการปิดหน้าเว็บได้</small></div>`;
+    const activeId = state.data.activeClipId && clipFiles.has(state.data.activeClipId) ? state.data.activeClipId : available.id;
+    state.data.activeClipId = activeId;
+    const active = selectedClips.find((clip) => clip.id === activeId) || available;
+    if (activePreviewUrl) URL.revokeObjectURL(activePreviewUrl);
+    activePreviewUrl = URL.createObjectURL(clipFiles.get(active.id));
+    const cards = selectedClips.map((clip, index) => `<article class="timeline-clip ${clip.id === active.id ? "active" : ""}">
+      <button class="timeline-select" type="button" data-preview-clip="${clip.id}"><span>${String(index + 1).padStart(2, "0")}</span><b>${escapeHtml(clip.name)}</b><small>${formatTime((clip.end ?? clip.duration) - (clip.start || 0))}</small></button>
+      <div class="timeline-move"><button type="button" data-move-clip="${clip.id}" data-direction="-1" ${index === 0 ? "disabled" : ""}>‹</button><button type="button" data-move-clip="${clip.id}" data-direction="1" ${index === selectedClips.length - 1 ? "disabled" : ""}>›</button></div>
+    </article>`).join("");
+    return `<div class="editor-grid">
+      <div class="preview-stage"><video id="timelinePreview" src="${activePreviewUrl}" controls playsinline preload="metadata"></video><small>${escapeHtml(active.name)}</small></div>
+      <aside class="trim-panel"><small>คลิปที่เลือก</small><h3>${escapeHtml(active.name)}</h3>
+        <label>เริ่มต้น (วินาที)<input id="trimStart" type="number" min="0" max="${Math.max(0, active.duration - .1)}" step="0.1" value="${active.start || 0}"></label>
+        <label>สิ้นสุด (วินาที)<input id="trimEnd" type="number" min="0.1" max="${active.duration}" step="0.1" value="${active.end ?? active.duration}"></label>
+        <div class="trim-result">ใช้ช่วง ${formatTime(active.start || 0)}–${formatTime(active.end ?? active.duration)}</div>
+      </aside>
+      <div class="timeline-head"><span><b>Timeline</b><small>${selectedClips.length} คลิป · ${formatTime(timelineDuration())}</small></span><small>ใช้ปุ่มซ้าย–ขวาเพื่อเรียงลำดับ</small></div>
+      <div class="timeline-track">${cards}</div>
+    </div>`;
+  }
+  function syncClipState() {
+    state.data.clipCount = selectedClips.length;
+    state.data.clipMeta = selectedClips.slice(0, 500).map(({ id, name, size, type, duration, start, end, status }) => ({ id, name, size, type, duration, start, end, status }));
+  }
+  async function readClipMetadata(clips, concurrency = 3) {
+    let cursor = 0;
+    async function worker() {
+      while (cursor < clips.length) {
+        const clip = clips[cursor++];
+        const file = clipFiles.get(clip.id);
+        if (!file) continue;
+        await new Promise((resolve) => {
+          const video = document.createElement("video");
+          const url = URL.createObjectURL(file);
+          video.preload = "metadata";
+          const finish = (status) => {
+            clip.duration = status === "ready" && Number.isFinite(video.duration) ? video.duration : 0;
+            clip.start = 0;
+            clip.end = clip.duration;
+            clip.status = status;
+            video.removeAttribute("src");
+            URL.revokeObjectURL(url);
+            resolve();
+          };
+          video.onloadedmetadata = () => finish("ready");
+          video.onerror = () => finish("error");
+          video.src = url;
+        });
+        syncClipState();
+        const list = $("#clipList");
+        if (list) list.innerHTML = renderClipList();
+        const count = $("#clipCount");
+        if (count) count.textContent = `${selectedClips.length} คลิป · อ่านข้อมูลแล้ว ${selectedClips.filter((item) => item.status !== "reading").length}/${selectedClips.length}`;
+      }
+    }
+    await Promise.all(Array.from({ length: Math.min(concurrency, clips.length) }, worker));
+    syncClipState();
+    save();
   }
   function render() {
     const config = modeConfig[state.mode];
@@ -156,15 +224,22 @@
       });
     });
     $("#clipInput")?.addEventListener("change", (event) => {
-      selectedClips = Array.from(event.target.files, (file) => ({ name: file.name, size: file.size, type: file.type }));
-      state.data.clipCount = selectedClips.length;
-      state.data.clipMeta = selectedClips.slice(0, 200).map(({ name, size, type }) => ({ name, size, type }));
+      if (activePreviewUrl) { URL.revokeObjectURL(activePreviewUrl); activePreviewUrl = ""; }
+      clipFiles.clear();
+      selectedClips = Array.from(event.target.files, (file, index) => {
+        const id = `${file.name}:${file.size}:${file.lastModified}:${index}`;
+        clipFiles.set(id, file);
+        return { id, name: file.name, size: file.size, type: file.type, duration: 0, start: 0, end: 0, status: "reading" };
+      });
+      syncClipState();
       $("#clipCount").textContent = `${selectedClips.length} คลิปที่เลือก · ${formatBytes(selectedClips.reduce((total, clip) => total + clip.size, 0))} รวม`;
       $("#clipList").innerHTML = renderClipList();
       save();
+      readClipMetadata(selectedClips);
     });
     $("#clearClips")?.addEventListener("click", () => {
       selectedClips = [];
+      clipFiles.clear();
       state.data.clipCount = 0;
       state.data.clipMeta = [];
       $("#clipCount").textContent = "0 คลิปในโครงการ · ไฟล์ยังอยู่ในเครื่องของคุณ";
@@ -173,6 +248,70 @@
       if (input) input.value = "";
       save();
     });
+    $("#stepPanel").addEventListener("click", (event) => {
+      const remove = event.target.closest("[data-remove-clip]");
+      if (remove) {
+        const id = remove.dataset.removeClip;
+        clipFiles.delete(id);
+        selectedClips = selectedClips.filter((clip) => clip.id !== id);
+        syncClipState();
+        save();
+        render();
+        return;
+      }
+      const previewButton = event.target.closest("[data-preview-clip]");
+      if (previewButton) {
+        state.data.activeClipId = previewButton.dataset.previewClip;
+        if (state.step === 4) render();
+        return;
+      }
+      const move = event.target.closest("[data-move-clip]");
+      if (move) {
+        const index = selectedClips.findIndex((clip) => clip.id === move.dataset.moveClip);
+        const target = index + Number(move.dataset.direction);
+        if (index < 0 || target < 0 || target >= selectedClips.length) return;
+        [selectedClips[index], selectedClips[target]] = [selectedClips[target], selectedClips[index]];
+        syncClipState();
+        save();
+        render();
+      }
+    });
+    const active = selectedClips.find((clip) => clip.id === state.data.activeClipId);
+    const preview = $("#timelinePreview");
+    const updateTrim = () => {
+      if (!active) return;
+      const start = Math.max(0, Math.min(Number($("#trimStart")?.value) || 0, active.duration));
+      const end = Math.max(start + .1, Math.min(Number($("#trimEnd")?.value) || active.duration, active.duration));
+      active.start = start;
+      active.end = end;
+      if (preview) preview.currentTime = start;
+      syncClipState();
+      save();
+      render();
+    };
+    $("#trimStart")?.addEventListener("change", updateTrim);
+    $("#trimEnd")?.addEventListener("change", updateTrim);
+    $("#downloadEditPlan")?.addEventListener("click", downloadEditPlan);
+  }
+  function downloadEditPlan() {
+    syncClipState();
+    const plan = {
+      format: "tanjai-edit-plan",
+      version: "0.3.0",
+      projectId: state.id,
+      projectName: state.name || "โครงการไม่มีชื่อ",
+      aspect: state.data.aspect || "16:9 แนวนอน",
+      style: state.data.style || "ข่าว / งานกิจกรรม",
+      totalDurationSeconds: timelineDuration(),
+      clips: state.data.clipMeta,
+      createdAt: new Date().toISOString(),
+    };
+    const url = URL.createObjectURL(new Blob([JSON.stringify(plan, null, 2)], { type: "application/json" }));
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `${(state.name || "tanjai-video-project").replace(/[\\/:*?"<>|]+/g, "-")}-edit-plan.json`;
+    anchor.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
   function openMode(mode) {
     state.mode = mode;
@@ -204,6 +343,8 @@
     $("#projectList").querySelectorAll("[data-project]").forEach((button) => button.addEventListener("click", () => {
       const item = items.find((project) => project.id === button.dataset.project);
       Object.assign(state, item);
+      selectedClips = [];
+      clipFiles.clear();
       $("#projectDialog").close();
       $("#workspace").hidden = false;
       render();
@@ -235,6 +376,7 @@
   });
   $("#sidebarBackdrop").addEventListener("click", closeSidebar);
   document.addEventListener("keydown", (event) => { if (event.key === "Escape") closeSidebar(); });
+  window.addEventListener("beforeunload", () => { if (activePreviewUrl) URL.revokeObjectURL(activePreviewUrl); });
 
   if (state.source !== "direct" || new URLSearchParams(location.search).has("projectId")) {
     $("#handoffBanner").hidden = false;
