@@ -23,6 +23,7 @@
     updatedAt: Date.now(),
     data: {},
   };
+  let selectedClips = [];
   const handoffKey = `tanjai-video-handoff:${state.id}`;
   try {
     const handoff = JSON.parse(localStorage.getItem(handoffKey) || "null");
@@ -40,7 +41,9 @@
         <div class="field full"><label>ชื่อโครงการ</label><input data-key="name" value="${escapeHtml(state.name)}" placeholder="เช่น สรุปกิจกรรมเทศบาลเมืองบางรักน้อย"></div>
         <div class="field"><label>รูปแบบวิดีโอ</label><select data-key="aspect"><option>16:9 แนวนอน</option><option>9:16 แนวตั้ง</option><option>1:1 จัตุรัส</option></select></div>
         <div class="field"><label>ความยาวเป้าหมาย</label><select data-key="duration"><option>ประมาณ 3 นาที</option><option>30–60 วินาที</option><option>ประมาณ 5 นาที</option><option>กำหนดเอง</option></select></div>`),
-      () => `<label class="dropzone"><input id="clipInput" type="file" accept="video/*" multiple><strong>🎞️ เพิ่มคลิปจากเครื่อง</strong><span>หรือรับรายการคลิปที่เตรียมไว้จากทันใจ AI Studio</span><small id="clipCount">${state.data.clipCount || 0} คลิปในโครงการ · ต้นแบบนี้ยังไม่อัปโหลดไฟล์ออกจากเครื่อง</small></label>`,
+      () => `<label class="dropzone"><input id="clipInput" type="file" accept="video/*,.mkv,.mov,.avi" multiple><strong>🎞️ เพิ่มคลิปจากเครื่อง</strong><span>เลือกพร้อมกันได้จำนวนมาก หรือรับรายการที่เตรียมจากทันใจ AI Studio</span><small id="clipCount">${state.data.clipCount || 0} คลิปในโครงการ · ไฟล์ยังอยู่ในเครื่องของคุณ</small></label>
+        <div class="clip-toolbar"><small>รายการจะแสดงสูงสุด 30 คลิปต่อครั้ง เพื่อไม่ให้หน้าเว็บกิน RAM เกินจำเป็น</small><button class="ghost compact" id="clearClips" type="button">ล้างรายการ</button></div>
+        <div class="clip-list" id="clipList">${renderClipList()}</div>`,
       () => choices("style", [
         ["ข่าว / งานกิจกรรม", "สุภาพ ชัดเจน เรียงเหตุการณ์"],
         ["ไฮไลต์กระชับ", "เลือกช่วงเด่น จังหวะคล่องตัว"],
@@ -112,6 +115,18 @@
   function summary(title, items, note) {
     return `<div class="summary-box"><h3>${title}</h3><div class="summary-list">${items.map(([key, value]) => `<div><small>${key}</small><b>${escapeHtml(value)}</b></div>`).join("")}</div><p><small>${note}</small></p></div>`;
   }
+  function formatBytes(bytes) {
+    if (!Number.isFinite(bytes) || bytes <= 0) return "0 MB";
+    const units = ["B", "KB", "MB", "GB"];
+    const index = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+    return `${(bytes / (1024 ** index)).toFixed(index > 1 ? 1 : 0)} ${units[index]}`;
+  }
+  function renderClipList() {
+    if (!selectedClips.length) return `<div class="clip-more">ยังไม่มีคลิปในรายการ</div>`;
+    const visible = selectedClips.slice(0, 30);
+    return visible.map((clip, index) => `<div class="clip-row"><i>${String(index + 1).padStart(2, "0")}</i><span><b title="${escapeHtml(clip.name)}">${escapeHtml(clip.name)}</b><small>${formatBytes(clip.size)} · รอวิเคราะห์</small></span><small>พร้อม</small></div>`).join("") +
+      (selectedClips.length > visible.length ? `<div class="clip-more">และอีก ${selectedClips.length - visible.length} คลิป · เก็บไว้ในคิวโดยไม่สร้าง Preview พร้อมกัน</div>` : "");
+  }
   function render() {
     const config = modeConfig[state.mode];
     $("#workspaceLabel").textContent = config.label;
@@ -119,7 +134,7 @@
     $("#stepper").innerHTML = config.steps.map((label, index) => `<div class="step ${index === state.step ? "active" : index < state.step ? "done" : ""}"><i>${index < state.step ? "✓" : index + 1}</i><span>${label}</span></div>`).join("");
     $("#stepPanel").innerHTML = panels[state.mode][state.step]();
     $("#prevStep").disabled = state.step === 0;
-    $("#nextStep").innerHTML = state.step === config.steps.length - 1 ? "บันทึกโครงการ ✓" : "ถัดไป →";
+    $("#nextStep").innerHTML = state.step === config.steps.length - 1 ? "บันทึกโครงการ ✓" : "ถัดไป";
     bindPanel();
   }
   function bindPanel() {
@@ -141,8 +156,21 @@
       });
     });
     $("#clipInput")?.addEventListener("change", (event) => {
-      state.data.clipCount = event.target.files.length;
-      $("#clipCount").textContent = `${event.target.files.length} คลิปที่เลือก · ยังไม่อัปโหลดออกจากเครื่อง`;
+      selectedClips = Array.from(event.target.files, (file) => ({ name: file.name, size: file.size, type: file.type }));
+      state.data.clipCount = selectedClips.length;
+      state.data.clipMeta = selectedClips.slice(0, 200).map(({ name, size, type }) => ({ name, size, type }));
+      $("#clipCount").textContent = `${selectedClips.length} คลิปที่เลือก · ${formatBytes(selectedClips.reduce((total, clip) => total + clip.size, 0))} รวม`;
+      $("#clipList").innerHTML = renderClipList();
+      save();
+    });
+    $("#clearClips")?.addEventListener("click", () => {
+      selectedClips = [];
+      state.data.clipCount = 0;
+      state.data.clipMeta = [];
+      $("#clipCount").textContent = "0 คลิปในโครงการ · ไฟล์ยังอยู่ในเครื่องของคุณ";
+      $("#clipList").innerHTML = renderClipList();
+      const input = $("#clipInput");
+      if (input) input.value = "";
       save();
     });
   }
@@ -152,6 +180,12 @@
     $("#workspace").hidden = false;
     render();
     $("#workspace").scrollIntoView({ behavior: "smooth", block: "start" });
+    closeSidebar();
+  }
+  function closeSidebar() {
+    $("#sidebar").classList.remove("open");
+    $("#sidebarBackdrop").classList.remove("show");
+    $("#mobileMenu").setAttribute("aria-expanded", "false");
   }
   function save() {
     if (!state.mode) return;
@@ -178,6 +212,11 @@
   }
 
   document.querySelectorAll("[data-mode]").forEach((button) => button.addEventListener("click", () => openMode(button.dataset.mode)));
+  document.querySelectorAll("[data-home]").forEach((button) => button.addEventListener("click", () => {
+    $("#workspace").hidden = true;
+    $("#home").scrollIntoView({ behavior: "smooth", block: "start" });
+    closeSidebar();
+  }));
   $("#closeWorkspace").addEventListener("click", () => { $("#workspace").hidden = true; scrollTo({ top: 0, behavior: "smooth" }); });
   $("#prevStep").addEventListener("click", () => { if (state.step > 0) { state.step -= 1; render(); } });
   $("#nextStep").addEventListener("click", () => {
@@ -185,11 +224,21 @@
     if (state.step < last) { state.step += 1; save(); render(); } else { save(); $("#nextStep").textContent = "บันทึกเรียบร้อย ✓"; }
   });
   $("#openProjects").addEventListener("click", () => { renderProjects(); $("#projectDialog").showModal(); });
+  $("#openProjectsSide").addEventListener("click", () => { renderProjects(); $("#projectDialog").showModal(); closeSidebar(); });
   $("#closeProjects").addEventListener("click", () => $("#projectDialog").close());
   $("#clearHandoff").addEventListener("click", () => { history.replaceState({}, "", location.pathname); $("#handoffBanner").hidden = true; });
+  $("#mobileMenu").addEventListener("click", () => {
+    const open = !$("#sidebar").classList.contains("open");
+    $("#sidebar").classList.toggle("open", open);
+    $("#sidebarBackdrop").classList.toggle("show", open);
+    $("#mobileMenu").setAttribute("aria-expanded", String(open));
+  });
+  $("#sidebarBackdrop").addEventListener("click", closeSidebar);
+  document.addEventListener("keydown", (event) => { if (event.key === "Escape") closeSidebar(); });
 
   if (state.source !== "direct" || new URLSearchParams(location.search).has("projectId")) {
     $("#handoffBanner").hidden = false;
     $("#handoffText").textContent = `รหัสงาน ${state.id.slice(0, 12)} · ${state.data.clipCount || 0} คลิป · พร้อมเลือกโหมดทำงานต่อ`;
+    openMode("footage");
   }
 })();
