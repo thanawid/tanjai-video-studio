@@ -2,7 +2,7 @@
 
 เว็บตัดต่อและสร้างวิดีโอซึ่งทำงานร่วมกับ Tanjai AI Studio
 
-## Prototype 0.3 — Local Timeline Foundation
+## Prototype 0.4 — MP4 Render Proof
 
 - โหมดตัดต่อจากคลิปที่มี
 - โหมดสร้างวิดีโอใหม่ด้วย AI
@@ -12,6 +12,9 @@
 - อ่าน Metadata แบบคิวพร้อมกันสูงสุด 3 คลิป
 - Preview เฉพาะคลิปที่เลือก พร้อมตัดหัว–ท้าย
 - เรียง Timeline และดาวน์โหลด Edit Plan JSON
+- ทดลองตัดและรวมคลิป 3–5 ไฟล์เป็น MP4 ด้วย FFmpeg WebAssembly
+- ใช้ FFmpeg Core แบบ Single-thread ภายในเว็บไซต์ ไม่ส่งคลิปออกจากเครื่อง
+- Edit Plan JSON ถูกย้ายไปอยู่ในเครื่องมือสำหรับนักพัฒนา
 - ใช้โลโก้ Favicon โครงหน้า และ Footer ในครอบครัวเดียวกับทันใจ AI Studio
 - Responsive ตั้งแต่โทรศัพท์ถึงจอ Desktop
 - ยังไม่เรียก API หรืออัปโหลดไฟล์ออกจากเครื่อง

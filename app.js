@@ -5,7 +5,7 @@
   const modeConfig = {
     footage: {
       label: "ตัดต่อจากคลิปที่มี",
-      steps: ["ตั้งค่าโครงการ", "เพิ่มคลิป", "เลือกแนว", "AI วางเรื่อง", "ตรวจ Timeline", "ส่งออก"],
+      steps: ["ตั้งค่าโครงการ", "เพิ่มคลิป", "เลือกแนว", "จัดลำดับ", "ตรวจ Timeline", "ส่งออก"],
       title: "สร้างโครงการจากฟุตเทจ",
     },
     generate: {
@@ -61,13 +61,22 @@
         ["สถานะ", selectedClips.length ? "พร้อมจัด Timeline" : "รอเพิ่มคลิป"],
       ], "รุ่นนี้ใช้การจัดลำดับในเครื่อง ยังไม่เรียก AI และไม่ส่งคลิปออกจากอุปกรณ์"),
       () => renderTimelineEditor(),
-      () => `${summary("พร้อมส่งต่อขั้นเรนเดอร์", [
+      () => `${summary("พร้อมสร้างวิดีโอ", [
         ["วิดีโอ", "MP4 H.264"],
-        ["ไฟล์ประกอบ", "Edit Plan JSON"],
+        ["เครื่องมือ", "FFmpeg ทำงานในเครื่อง"],
         ["Timeline", `${selectedClips.length || state.data.clipCount || 0} คลิป · ${formatTime(timelineDuration())}`],
-        ["สถานะ", "พร้อมนำแผนไปเชื่อม FFmpeg ในขั้นถัดไป"],
-      ], "รุ่น 0.3 บันทึกโครง Timeline จริง แต่ยังไม่เรนเดอร์ MP4")}
-      <button class="primary export-plan" id="downloadEditPlan" type="button">ดาวน์โหลด Edit Plan</button>`,
+        ["สถานะ", selectedClips.length ? "พร้อมทดลองเรนเดอร์ 3–5 คลิป" : "ต้องเลือกไฟล์ต้นฉบับอีกครั้ง"],
+      ], "รุ่น 0.4 ทดลองตัด ต่อ และรักษาเสียงใน Chrome/Edge บนคอมพิวเตอร์")}
+      <div class="render-actions">
+        <button class="primary" id="renderMP4" type="button" ${selectedClips.length ? "" : "disabled"}>สร้างวิดีโอ MP4</button>
+        <details class="developer-tools"><summary>เครื่องมือสำหรับนักพัฒนา</summary><button class="ghost compact" id="downloadEditPlan" type="button">ดาวน์โหลด Edit Plan JSON</button></details>
+      </div>
+      <div class="render-status" id="renderStatus" hidden>
+        <div class="render-status-head"><b id="renderStatusTitle">กำลังเตรียมเครื่องเรนเดอร์</b><span id="renderPercent">0%</span></div>
+        <div class="render-progress"><i id="renderProgressBar"></i></div>
+        <small id="renderStatusDetail">ดาวน์โหลด FFmpeg Core ครั้งแรกประมาณ 31 MB</small>
+        <pre id="renderLog" hidden></pre>
+      </div>`,
     ],
     generate: [
       () => fields(`
@@ -297,7 +306,7 @@
     syncClipState();
     const plan = {
       format: "tanjai-edit-plan",
-      version: "0.3.0",
+      version: "0.4.0",
       projectId: state.id,
       projectName: state.name || "โครงการไม่มีชื่อ",
       aspect: state.data.aspect || "16:9 แนวนอน",
@@ -313,6 +322,16 @@
     anchor.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
+  window.TanjaiVideoBridge = {
+    getRenderContext() {
+      return {
+        projectId: state.id,
+        projectName: state.name || "tanjai-video",
+        aspect: state.data.aspect || "16:9 แนวนอน",
+        clips: selectedClips.map((clip) => ({ ...clip, file: clipFiles.get(clip.id) })).filter((clip) => clip.file),
+      };
+    },
+  };
   function openMode(mode) {
     state.mode = mode;
     state.step = 0;
