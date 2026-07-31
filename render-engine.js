@@ -1,6 +1,7 @@
 import { FFmpeg } from "./vendor/ffmpeg/index.js";
 
 const ffmpeg = new FFmpeg();
+const FFMPEG_CORE_CDN = "https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/esm/ffmpeg-core.wasm";
 let loaded = false;
 let rendering = false;
 let latestLog = "";
@@ -26,17 +27,16 @@ ffmpeg.on("log", ({ message }) => {
 async function loadFFmpeg() {
   if (loaded) return;
   const coreURL = new URL("./vendor/ffmpeg-core/ffmpeg-core.js", import.meta.url).href;
-  const sourceWasmURL = new URL("./vendor/ffmpeg-core/ffmpeg-core.wasm", import.meta.url).href;
-  setStatus("กำลังโหลด FFmpeg", "ครั้งแรกประมาณ 31 MB จากไฟล์ภายในเว็บไซต์", 3);
-  const response = await fetch(sourceWasmURL, { cache: "no-cache" });
+  setStatus("กำลังโหลด FFmpeg", "ครั้งแรกประมาณ 31 MB จาก CDN จากนั้นเบราว์เซอร์จะช่วยจำไฟล์ไว้", 3);
+  const response = await fetch(FFMPEG_CORE_CDN, { cache: "force-cache" });
   if (!response.ok) {
-    throw new Error(`ไม่พบไฟล์ FFmpeg Core (${response.status}) กรุณาอัปโหลดโฟลเดอร์ vendor/ffmpeg-core ให้ครบ`);
+    throw new Error(`ดาวน์โหลด FFmpeg Core ไม่สำเร็จ (${response.status}) กรุณาตรวจอินเทอร์เน็ตแล้วลองใหม่`);
   }
   const wasmBytes = await response.arrayBuffer();
-  if (wasmBytes.byteLength < 4) throw new Error("ไฟล์ FFmpeg Core ว่างหรืออัปโหลดไม่ครบ");
+  if (wasmBytes.byteLength < 4) throw new Error("ไฟล์ FFmpeg Core ที่ดาวน์โหลดมาไม่สมบูรณ์");
   const signature = new Uint8Array(wasmBytes, 0, 4);
   if (signature[0] !== 0 || signature[1] !== 97 || signature[2] !== 115 || signature[3] !== 109) {
-    throw new Error("ไฟล์ FFmpeg Core บนเว็บไซต์ไม่สมบูรณ์ กรุณาอัปโหลด vendor/ffmpeg-core/ffmpeg-core.wasm ใหม่");
+    throw new Error("CDN ส่งไฟล์ FFmpeg Core ไม่ถูกต้อง กรุณารอสักครู่แล้วลองใหม่");
   }
   const wasmURL = URL.createObjectURL(new Blob([wasmBytes], { type: "application/wasm" }));
   try {

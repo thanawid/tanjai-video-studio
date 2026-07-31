@@ -308,7 +308,7 @@
     syncClipState();
     const plan = {
       format: "tanjai-edit-plan",
-      version: "0.4.1",
+      version: "0.4.2",
       projectId: state.id,
       projectName: state.name || "โครงการไม่มีชื่อ",
       aspect: state.data.aspect || "16:9 แนวนอน",
