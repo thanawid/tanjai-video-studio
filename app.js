@@ -308,7 +308,7 @@
     syncClipState();
     const plan = {
       format: "tanjai-edit-plan",
-      version: "0.4.2",
+      version: "0.4.3",
       projectId: state.id,
       projectName: state.name || "โครงการไม่มีชื่อ",
       aspect: state.data.aspect || "16:9 แนวนอน",
@@ -334,6 +334,68 @@
       };
     },
   };
+  async function loadHandoffMedia() {
+    if (state.source === "direct" || !state.id) return;
+    const mediaStore = window.TanjaiVideoMediaStore;
+    if (!mediaStore) {
+      $("#handoffText").textContent = "เปิดคลังคลิปร่วมไม่ได้ กรุณารีเฟรชหน้าเว็บ";
+      return;
+    }
+    $("#handoffText").textContent = "กำลังรับคลิปที่ปรับแล้วจากทันใจ AI Studio…";
+    try {
+      const [project, records] = await Promise.all([
+        mediaStore.getProject(state.id),
+        mediaStore.getClips(state.id),
+      ]);
+      if (!records.length) {
+        $("#handoffText").textContent = `พบแผนงาน ${state.data.clipCount || 0} คลิป แต่ยังไม่พบไฟล์ กรุณากลับไปกด “ตัดต่อวิดีโอต่อ” อีกครั้ง`;
+        return;
+      }
+      if (activePreviewUrl) {
+        URL.revokeObjectURL(activePreviewUrl);
+        activePreviewUrl = "";
+      }
+      selectedClips = [];
+      clipFiles.clear();
+      records.forEach((record, index) => {
+        const id = `handoff:${record.key || `${state.id}:${index}`}`;
+        const file = new File([record.blob], record.name || `clip-${index + 1}.mp4`, {
+          type: record.type || record.blob?.type || "video/mp4",
+          lastModified: record.lastModified || Date.now(),
+        });
+        clipFiles.set(id, file);
+        const duration = Math.max(0, Number(record.duration) || 0);
+        selectedClips.push({
+          id,
+          name:file.name,
+          sourceName:record.sourceName || file.name,
+          size:file.size,
+          type:file.type,
+          duration,
+          width:Number(record.width) || 0,
+          height:Number(record.height) || 0,
+          start:0,
+          end:duration,
+          status:"ready",
+          fromHandoff:true,
+          fallback:!!record.fallback,
+        });
+      });
+      state.name = state.name || project?.destinationName || "โครงการจากทันใจ";
+      state.data.handoff = project || state.data.handoff;
+      state.data.clipCount = selectedClips.length;
+      state.data.activeClipId = selectedClips[0]?.id || null;
+      state.data.handoffLoaded = true;
+      syncClipState();
+      state.step = 1;
+      save();
+      render();
+      $("#handoffText").textContent = `รับคลิปที่ปรับแล้ว ${selectedClips.length} คลิปเรียบร้อย · ไม่ต้องอัปโหลดซ้ำ`;
+    } catch (error) {
+      console.error(error);
+      $("#handoffText").textContent = "อ่านคลิปจากคลังร่วมไม่สำเร็จ กรุณากลับไปส่งคลิปอีกครั้ง";
+    }
+  }
   function setActiveNav(target) {
     document.querySelectorAll(".sidebar .nav-item").forEach((item) => {
       const isActive = target === "home"
@@ -373,7 +435,7 @@
   function renderProjects() {
     const items = readProjects();
     $("#projectList").innerHTML = items.length ? items.map((item) => `<button class="project-item ghost" type="button" data-project="${item.id}"><span><b>${escapeHtml(item.name || modeConfig[item.mode]?.title || "โครงการไม่มีชื่อ")}</b><small>${escapeHtml(modeConfig[item.mode]?.label || "")}</small></span><small>${new Date(item.updatedAt).toLocaleString("th-TH")}</small></button>`).join("") : `<div class="empty-projects">ยังไม่มีโครงการที่บันทึกไว้</div>`;
-    $("#projectList").querySelectorAll("[data-project]").forEach((button) => button.addEventListener("click", () => {
+    $("#projectList").querySelectorAll("[data-project]").forEach((button) => button.addEventListener("click", async () => {
       const item = items.find((project) => project.id === button.dataset.project);
       Object.assign(state, item);
       selectedClips = [];
@@ -383,6 +445,9 @@
       setActiveNav(state.mode);
       render();
       $("#workspace").scrollIntoView({ behavior: "smooth" });
+      if (state.source !== "direct" || state.data?.handoffLoaded) {
+        await loadHandoffMedia();
+      }
     }));
   }
 
@@ -431,5 +496,6 @@
     $("#handoffBanner").hidden = false;
     $("#handoffText").textContent = `รหัสงาน ${state.id.slice(0, 12)} · ${state.data.clipCount || 0} คลิป · พร้อมเลือกโหมดทำงานต่อ`;
     openMode("footage");
+    loadHandoffMedia();
   }
 })();
