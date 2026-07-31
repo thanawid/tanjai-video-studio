@@ -25,11 +25,25 @@ ffmpeg.on("log", ({ message }) => {
 
 async function loadFFmpeg() {
   if (loaded) return;
+  const coreURL = new URL("./vendor/ffmpeg-core/ffmpeg-core.js", import.meta.url).href;
+  const sourceWasmURL = new URL("./vendor/ffmpeg-core/ffmpeg-core.wasm", import.meta.url).href;
   setStatus("กำลังโหลด FFmpeg", "ครั้งแรกประมาณ 31 MB จากไฟล์ภายในเว็บไซต์", 3);
-  await ffmpeg.load({
-    coreURL: new URL("./vendor/ffmpeg-core/ffmpeg-core.js", import.meta.url).href,
-    wasmURL: new URL("./vendor/ffmpeg-core/ffmpeg-core.wasm", import.meta.url).href,
-  });
+  const response = await fetch(sourceWasmURL, { cache: "no-cache" });
+  if (!response.ok) {
+    throw new Error(`ไม่พบไฟล์ FFmpeg Core (${response.status}) กรุณาอัปโหลดโฟลเดอร์ vendor/ffmpeg-core ให้ครบ`);
+  }
+  const wasmBytes = await response.arrayBuffer();
+  if (wasmBytes.byteLength < 4) throw new Error("ไฟล์ FFmpeg Core ว่างหรืออัปโหลดไม่ครบ");
+  const signature = new Uint8Array(wasmBytes, 0, 4);
+  if (signature[0] !== 0 || signature[1] !== 97 || signature[2] !== 115 || signature[3] !== 109) {
+    throw new Error("ไฟล์ FFmpeg Core บนเว็บไซต์ไม่สมบูรณ์ กรุณาอัปโหลด vendor/ffmpeg-core/ffmpeg-core.wasm ใหม่");
+  }
+  const wasmURL = URL.createObjectURL(new Blob([wasmBytes], { type: "application/wasm" }));
+  try {
+    await ffmpeg.load({ coreURL, wasmURL });
+  } finally {
+    URL.revokeObjectURL(wasmURL);
+  }
   loaded = true;
   setStatus("FFmpeg พร้อมทำงาน", "กำลังเตรียมคลิปตาม Timeline", 8);
 }

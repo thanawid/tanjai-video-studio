@@ -211,7 +211,9 @@
     $("#stepper").innerHTML = config.steps.map((label, index) => `<div class="step ${index === state.step ? "active" : index < state.step ? "done" : ""}"><i>${index < state.step ? "✓" : index + 1}</i><span>${label}</span></div>`).join("");
     $("#stepPanel").innerHTML = panels[state.mode][state.step]();
     $("#prevStep").disabled = state.step === 0;
-    $("#nextStep").innerHTML = state.step === config.steps.length - 1 ? "บันทึกโครงการ ✓" : "ถัดไป";
+    $("#nextStep").textContent = state.step === config.steps.length - 1
+      ? state.mode === "generate" ? "บันทึกไว้ในโครงการของฉัน" : "บันทึกโครงการ"
+      : "ถัดไป";
     bindPanel();
   }
   function bindPanel() {
@@ -306,7 +308,7 @@
     syncClipState();
     const plan = {
       format: "tanjai-edit-plan",
-      version: "0.4.0",
+      version: "0.4.1",
       projectId: state.id,
       projectName: state.name || "โครงการไม่มีชื่อ",
       aspect: state.data.aspect || "16:9 แนวนอน",
@@ -332,10 +334,22 @@
       };
     },
   };
+  function setActiveNav(target) {
+    document.querySelectorAll(".sidebar .nav-item").forEach((item) => {
+      const isActive = target === "home"
+        ? item.hasAttribute("data-home")
+        : target === "projects"
+          ? item.id === "openProjectsSide"
+          : item.dataset.mode === target;
+      item.classList.toggle("active", isActive);
+      if (item.matches("button")) item.setAttribute("aria-current", isActive ? "page" : "false");
+    });
+  }
   function openMode(mode) {
     state.mode = mode;
     state.step = 0;
     $("#workspace").hidden = false;
+    setActiveNav(mode);
     render();
     $("#workspace").scrollIntoView({ behavior: "smooth", block: "start" });
     closeSidebar();
@@ -366,6 +380,7 @@
       clipFiles.clear();
       $("#projectDialog").close();
       $("#workspace").hidden = false;
+      setActiveNav(state.mode);
       render();
       $("#workspace").scrollIntoView({ behavior: "smooth" });
     }));
@@ -374,18 +389,33 @@
   document.querySelectorAll("[data-mode]").forEach((button) => button.addEventListener("click", () => openMode(button.dataset.mode)));
   document.querySelectorAll("[data-home]").forEach((button) => button.addEventListener("click", () => {
     $("#workspace").hidden = true;
+    setActiveNav("home");
     $("#home").scrollIntoView({ behavior: "smooth", block: "start" });
     closeSidebar();
   }));
-  $("#closeWorkspace").addEventListener("click", () => { $("#workspace").hidden = true; scrollTo({ top: 0, behavior: "smooth" }); });
+  $("#closeWorkspace").addEventListener("click", () => { $("#workspace").hidden = true; setActiveNav("home"); scrollTo({ top: 0, behavior: "smooth" }); });
   $("#prevStep").addEventListener("click", () => { if (state.step > 0) { state.step -= 1; render(); } });
   $("#nextStep").addEventListener("click", () => {
     const last = modeConfig[state.mode].steps.length - 1;
-    if (state.step < last) { state.step += 1; save(); render(); } else { save(); $("#nextStep").textContent = "บันทึกเรียบร้อย ✓"; }
+    if (state.step < last) {
+      state.step += 1;
+      save();
+      render();
+    } else {
+      save();
+      if (state.mode === "generate") {
+        setActiveNav("projects");
+        renderProjects();
+        $("#projectDialog").showModal();
+      } else {
+        $("#nextStep").textContent = "บันทึกเรียบร้อย ✓";
+      }
+    }
   });
-  $("#openProjects").addEventListener("click", () => { renderProjects(); $("#projectDialog").showModal(); });
-  $("#openProjectsSide").addEventListener("click", () => { renderProjects(); $("#projectDialog").showModal(); closeSidebar(); });
-  $("#closeProjects").addEventListener("click", () => $("#projectDialog").close());
+  $("#openProjects").addEventListener("click", () => { setActiveNav("projects"); renderProjects(); $("#projectDialog").showModal(); });
+  $("#openProjectsSide").addEventListener("click", () => { setActiveNav("projects"); renderProjects(); $("#projectDialog").showModal(); closeSidebar(); });
+  $("#closeProjects").addEventListener("click", () => { $("#projectDialog").close(); setActiveNav($("#workspace").hidden ? "home" : state.mode); });
+  $("#projectDialog").addEventListener("close", () => setActiveNav($("#workspace").hidden ? "home" : state.mode));
   $("#clearHandoff").addEventListener("click", () => { history.replaceState({}, "", location.pathname); $("#handoffBanner").hidden = true; });
   $("#mobileMenu").addEventListener("click", () => {
     const open = !$("#sidebar").classList.contains("open");
