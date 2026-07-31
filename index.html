@@ -4,14 +4,14 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#080b17">
-  <meta name="description" content="Tanjai Video Studio — ตัดต่อจากคลิปจริงและสร้างวิดีโอใหม่ด้วย AI">
-  <title>ตัดต่อวิดีโอ | Tanjai Video Studio</title>
+  <meta name="description" content="Tanjai Video Studio — สร้างวิดีโอใหม่ด้วย AI จากหัวข้อ บท หรือภาพ">
+  <title>สร้างวิดีโอ AI | Tanjai Video Studio</title>
   <link rel="icon" type="image/png" href="assets/favicon-32.png">
   <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=0.4.3">
+  <link rel="stylesheet" href="styles.css?v=0.5.0">
 </head>
 <body>
   <div class="ambient ambient-one"></div>
@@ -26,9 +26,8 @@
     </a>
     <div class="nav-group">
       <small>VIDEO WORKSPACE</small>
-      <button class="nav-item active" type="button" data-home><span>🎬</span> หน้าแรกวิดีโอ</button>
-      <button class="nav-item" type="button" data-mode="footage"><span>🎞️</span> ตัดต่อจากคลิปที่มี</button>
-      <button class="nav-item" type="button" data-mode="generate"><span>✨</span> สร้างวิดีโอด้วย AI</button>
+      <a class="nav-item active" href="./"><span>🎬</span> หน้าแรกวิดีโอ</a>
+      <button class="nav-item" type="button" data-start><span>✨</span> สร้างวิดีโอด้วย AI</button>
       <button class="nav-item" id="openProjectsSide" type="button"><span>📁</span> โครงการของฉัน</button>
     </div>
     <div class="nav-group nav-bottom">
@@ -40,7 +39,7 @@
 
   <div class="app-shell">
     <header class="topbar">
-      <div class="page-title"><small>ทันใจ AI Studio</small><h1>ตัดต่อวิดีโอ</h1></div>
+      <div class="page-title"><small>ทันใจ AI Studio</small><h1>สร้างวิดีโอ AI</h1></div>
       <nav>
         <button class="ghost compact" id="openProjects" type="button">โครงการของฉัน</button>
         <a class="ghost compact" id="backToMain" href="https://thanawid.github.io/tanjai-ai-studio/#video">กลับเว็บหลัก</a>
@@ -50,12 +49,12 @@
     <main>
       <section class="hero" id="home">
         <div class="hero-copy">
-          <div class="eyebrow">TANJAI VIDEO STUDIO <span>VIDEO WORKSPACE</span></div>
-          <h2>จากฟุตเทจที่มี<br><em>หรือจากเรื่องที่คิด</em></h2>
-          <p>พื้นที่ทำวิดีโอของทันใจ ตั้งแต่คัดคลิป วางเรื่อง ตรวจ Timeline ไปจนถึงไฟล์พร้อมใช้ โดยคุณควบคุมงานได้ทุกช่วง</p>
+          <div class="eyebrow">TANJAI VIDEO STUDIO <span>AI VIDEO GENERATOR</span></div>
+          <h2>เปลี่ยนเรื่องที่คิด<br><em>ให้เคลื่อนไหว</em></h2>
+          <p>เริ่มจากหัวข้อ บท หรือภาพ วาง Storyboard ฟรีก่อน แล้วเชื่อม AI เพื่อสร้างภาพ วิดีโอ เสียงพากย์ และไฟล์พร้อมใช้รายฉาก</p>
           <div class="hero-actions">
-            <button class="primary" data-mode="footage" type="button">เริ่มจากคลิปที่มี</button>
-            <button class="ghost" data-mode="generate" type="button">สร้างวิดีโอใหม่</button>
+            <button class="primary" data-start type="button">เริ่มสร้างวิดีโอ</button>
+            <button class="ghost" id="openProjectsHero" type="button">โครงการของฉัน</button>
           </div>
         </div>
         <div class="hero-brand" aria-hidden="true">
@@ -65,50 +64,40 @@
           <b>TANJAI VIDEO</b>
           <span>คิดไว · ทำไว · ตรวจได้</span>
         </div>
-        <div class="handoff" id="handoffBanner" hidden>
-          <span class="pulse"></span>
-          <div><b>รับโครงการจากทันใจแล้ว</b><small id="handoffText"></small></div>
-          <button class="text-button" id="clearHandoff" type="button">เริ่มใหม่</button>
-        </div>
       </section>
 
       <section class="section-intro">
-        <div><small>เลือกทางเริ่มต้น</small><h2>งานเดิมที่มี หรือเรื่องใหม่ที่อยากสร้าง</h2></div>
-        <p>ไม่ว่ามาจากทางไหน งานทั้งหมดอยู่ในพื้นที่เดียวกัน</p>
+        <div><small>เริ่มจากไอเดีย</small><h2>สร้างได้หลายแนว แต่ตรวจได้ทุกฉาก</h2></div>
+        <p>ร่าง Storyboard ฟรีก่อนใช้เครดิต และแก้เฉพาะฉากที่ยังไม่ลงตัว</p>
       </section>
 
       <section class="mode-grid" aria-label="เลือกวิธีสร้างวิดีโอ">
-        <article class="mode-card footage-card">
-          <div class="mode-top"><span class="mode-number">01</span><span class="status ready">พร้อมทดลอง</span></div>
-          <div class="mode-icon">🎞️</div>
-          <h2>ตัดต่อจากคลิปที่มี</h2>
-          <p>รับคลิปที่ปรับจากทันใจหรือเพิ่มจากเครื่อง ให้ AI ช่วยคัดช็อต วางเรื่อง และจัด Timeline</p>
-          <ul>
-            <li>รองรับฟุตเทจจำนวนมากแบบรายการเบาเครื่อง</li>
-            <li>มีแนวข่าว กิจกรรม Reel และไฮไลต์</li>
-            <li>ตรวจทุกช็อตก่อนส่งออก</li>
-          </ul>
-          <button class="primary" data-mode="footage" type="button">เริ่มจากคลิปของฉัน</button>
-        </article>
-
         <article class="mode-card generate-card">
-          <div class="mode-top"><span class="mode-number">02</span><span class="status planned">กำลังพัฒนา</span></div>
+          <div class="mode-top"><span class="mode-number">AI VIDEO</span><span class="status ready">วางแผนฟรี</span></div>
           <div class="mode-icon">✨</div>
-          <h2>สร้างวิดีโอใหม่ด้วย AI</h2>
-          <p>เริ่มจากหัวข้อหรือพล็อต ให้ AI แบ่งฉาก สร้าง Storyboard ภาพ เสียง และประกอบเป็นวิดีโอ</p>
+          <h2>จากหัวข้อหรือบท</h2>
+          <p>ให้ระบบแบ่งฉาก เขียน Prompt และเสียงพากย์ ก่อนส่งให้ผู้ให้บริการ AI สร้างจริง</p>
           <ul>
-            <li>ประชาสัมพันธ์ นิทาน MV และหนังสั้น</li>
-            <li>กำหนดภาพ แสง สี เสียง และสัดส่วน</li>
-            <li>รักษาอัตลักษณ์บุคคลจากภาพอ้างอิง</li>
+            <li>ประชาสัมพันธ์ ข่าว นิทาน MV หนังสั้น และโฆษณา</li>
+            <li>ภาพยนตร์ 3D อนิเมะ และแนวภาพเฉพาะ</li>
+            <li>เชื่อม AI ผ่าน Gateway โดยไม่เปิดเผย API Key</li>
           </ul>
-          <button class="primary" data-mode="generate" type="button">เริ่มสร้างเรื่องใหม่</button>
+          <button class="primary" data-start type="button">เริ่มจากเรื่องของฉัน</button>
+        </article>
+        <article class="mode-card api-card">
+          <div class="mode-top"><span class="mode-number">API</span><span class="status planned">พร้อมเชื่อมต่อ</span></div>
+          <div class="mode-icon">🔌</div>
+          <h2>สร้างสื่อจริงรายฉาก</h2>
+          <p>เมื่อเชื่อม AI Gateway ระบบจะส่ง Storyboard ไปสร้างภาพ วิดีโอ และเสียง พร้อมติดตามสถานะงาน</p>
+          <ul><li>เปลี่ยนผู้ให้บริการได้ ไม่ผูกกับเจ้าเดียว</li><li>แสดงต้นทุนก่อนเริ่มผลิตจริง</li><li>สร้างใหม่เฉพาะฉาก ลดเวลาและค่าใช้จ่าย</li></ul>
+          <button class="ghost" data-start type="button">เตรียมโครงการ</button>
         </article>
       </section>
 
       <section class="workspace" id="workspace" hidden>
         <div class="workspace-head">
-          <div><span class="step-label" id="workspaceLabel">โหมดตัดต่อจากคลิป</span><h2 id="workspaceTitle">สร้างโครงการใหม่</h2></div>
-          <button class="ghost compact" id="closeWorkspace" type="button">เปลี่ยนโหมด</button>
+          <div><span class="step-label" id="workspaceLabel">AI VIDEO GENERATOR</span><h2 id="workspaceTitle">สร้างวิดีโอใหม่ด้วย AI</h2></div>
+          <button class="ghost compact" id="closeWorkspace" type="button">กลับหน้าแรก</button>
         </div>
         <div class="stepper" id="stepper" aria-label="ขั้นตอนทำงาน"></div>
         <div class="step-panel" id="stepPanel"></div>
@@ -120,8 +109,8 @@
       </section>
 
       <section class="principles">
-        <div><span>01</span><b>ตรวจได้ทุกขั้น</b><small>AI เสนอ คุณเป็นคนอนุมัติ</small></div>
-        <div><span>02</span><b>รองรับงานจำนวนมาก</b><small>แสดงเฉพาะสิ่งที่ต้องใช้ ลดภาระหน่วยความจำ</small></div>
+        <div><span>01</span><b>ร่างฟรีก่อนผลิต</b><small>ตรวจเรื่องและ Prompt โดยยังไม่ใช้เครดิต</small></div>
+        <div><span>02</span><b>API Key ไม่อยู่หน้าเว็บ</b><small>เชื่อมผ่าน Gateway ที่ควบคุมได้</small></div>
         <div><span>03</span><b>สร้างใหม่เฉพาะฉาก</b><small>ลดเวลาและค่าใช้จ่ายที่ไม่จำเป็น</small></div>
       </section>
     </main>
@@ -139,8 +128,6 @@
     </div>
     <div id="projectList" class="project-list"></div>
   </dialog>
-  <script src="handoff-store.js?v=0.4.3"></script>
-  <script src="app.js?v=0.4.3"></script>
-  <script type="module" src="render-engine.js?v=0.4.3"></script>
+  <script src="app.js?v=0.5.0"></script>
 </body>
 </html>
