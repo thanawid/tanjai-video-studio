@@ -1,0 +1,9 @@
+{
+  "name": "tanjai-video-studio",
+  "version": "0.6.0",
+  "private": true,
+  "scripts": {
+    "start": "node server.mjs",
+    "test": "node tests/smoke.js"
+  }
+}
