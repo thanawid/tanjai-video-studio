@@ -5,7 +5,7 @@ const app = fs.readFileSync("app.js", "utf8");
 const css = fs.readFileSync("styles.css", "utf8");
 
 assert.match(index, /สร้างวิดีโอ AI \| Tanjai Video Studio/);
-assert.match(index, /app\.js\?v=0\.6\.0/);
+assert.match(index, /app\.js\?v=0\.6\.1/);
 assert.doesNotMatch(index, /ตัดต่อจากคลิปที่มี|render-engine|handoff-store/);
 assert.match(app, /ให้ AI วางเรื่อง/);
 assert.match(app, /tanjai-ai-video-project/);
@@ -19,4 +19,4 @@ assert.match(app, /อนิเมะแฟนตาซี/);
 assert.match(css, /@media\(max-width:760px\)/);
 assert.match(css, /@media\(max-width:640px\)/);
 
-console.log(JSON.stringify({ version: "0.6.0", aiVideoOnly: true, realStoryboard: true, mp4Ready: true, animeStyles: 4, responsive: true, status: "PASS" }, null, 2));
+console.log(JSON.stringify({ version: "0.6.1", aiVideoOnly: true, realStoryboard: true, mp4Ready: true, dockerReady: true, animeStyles: 4, responsive: true, status: "PASS" }, null, 2));

@@ -51,7 +51,7 @@
     }
   }
   function projectPayload() {
-    return { format: "tanjai-ai-video-project", version: "0.6.0", projectId: state.id, projectName: state.name, ...state.data, updatedAt: new Date(state.updatedAt).toISOString() };
+    return { format: "tanjai-ai-video-project", version: "0.6.1", projectId: state.id, projectName: state.name, ...state.data, updatedAt: new Date(state.updatedAt).toISOString() };
   }
   function downloadJson() {
     const blob = new Blob([JSON.stringify(projectPayload(), null, 2)], { type: "application/json" });
