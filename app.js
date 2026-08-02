@@ -7,6 +7,7 @@
     id: crypto.randomUUID(), step: 0, name: "", updatedAt: Date.now(),
     data: { genre: "ประชาสัมพันธ์", aspect: "16:9 แนวนอน", duration: "30 วินาที", language: "ภาษาไทย", visual: "ให้ทันใจแนะนำ", movement: "ให้ทันใจแนะนำ", scenes: [], method: "preview" }
   };
+  let serviceReady = false;
 
   const escapeHtml = (value) => String(value || "").replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[char]));
   const readProjects = () => { try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; } catch { return []; } };
@@ -34,6 +35,22 @@
     if (!response.ok) throw new Error(result.error || "ยังทำรายการไม่สำเร็จ");
     return result;
   }
+  async function checkService() {
+    try {
+      const health = await requestJson("/api/health");
+      serviceReady = Boolean(health.ready);
+      document.querySelectorAll("[data-start]").forEach((button) => { button.disabled = !serviceReady; });
+      const note = $(".system-note small");
+      if (note) note.textContent = serviceReady ? "ระบบสร้างวิดีโอพร้อมใช้งาน" : "ระบบสร้างวิดีโอยังไม่พร้อม";
+      return serviceReady;
+    } catch {
+      serviceReady = false;
+      document.querySelectorAll("[data-start]").forEach((button) => { button.disabled = true; });
+      const note = $(".system-note small");
+      if (note) note.textContent = "กำลังรอระบบออนไลน์";
+      return false;
+    }
+  }
   async function buildStoryboard() {
     if (!state.data.topic?.trim()) return showMessage("กรุณาเล่าเรื่องที่ต้องการทำก่อนครับ");
     const button = $("#buildStoryboard");
@@ -47,7 +64,7 @@
       save(); render();
     } catch (error) { if (button) { button.disabled = false; button.textContent = "ให้ทันใจวางฉาก"; } showMessage(error.message); }
   }
-  function projectPayload() { return { format: "tanjai-video-prompt-pack", version: "0.7.0", projectId: state.id, projectName: state.name, ...state.data, updatedAt: new Date(state.updatedAt).toISOString() }; }
+  function projectPayload() { return { format: "tanjai-video-prompt-pack", version: "0.7.1", projectId: state.id, projectName: state.name, ...state.data, updatedAt: new Date(state.updatedAt).toISOString() }; }
   function downloadJson() {
     const blob = new Blob([JSON.stringify(projectPayload(), null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob); const anchor = document.createElement("a");
@@ -121,7 +138,13 @@
     } catch (error) { box.className = "api-result error"; box.textContent = error.message; button.disabled = false; button.textContent = "ตรวจสถานะอีกครั้ง"; }
   }
   function setActiveNav(mode) { document.querySelectorAll(".sidebar .nav-item").forEach((item) => item.classList.remove("active")); const target = mode === "start" ? $("[data-start].nav-item") : $(".sidebar a.nav-item"); target?.classList.add("active"); }
-  function openGenerator() { $("#workspace").hidden = false; render(); $("#workspace").scrollIntoView({ behavior: "smooth", block: "start" }); closeSidebar(); }
+  async function openGenerator() {
+    if (!serviceReady && !(await checkService())) {
+      alert("ระบบสร้างวิดีโอยังไม่พร้อม กรุณารอสักครู่แล้วลองใหม่ครับ");
+      return;
+    }
+    $("#workspace").hidden = false; render(); $("#workspace").scrollIntoView({ behavior: "smooth", block: "start" }); closeSidebar();
+  }
   function closeSidebar() { $("#sidebar").classList.remove("open"); $("#sidebarBackdrop").classList.remove("show"); $("#mobileMenu").setAttribute("aria-expanded", "false"); }
   function renderProjects() {
     const items = readProjects();
@@ -136,5 +159,7 @@
   $("#closeProjects").addEventListener("click", () => $("#projectDialog").close());
   $("#mobileMenu").addEventListener("click", () => { const open = !$("#sidebar").classList.contains("open"); $("#sidebar").classList.toggle("open", open); $("#sidebarBackdrop").classList.toggle("show", open); $("#mobileMenu").setAttribute("aria-expanded", String(open)); });
   $("#sidebarBackdrop").addEventListener("click", closeSidebar);
-  if (new URLSearchParams(location.search).get("source") === "tanjai-ai-studio") openGenerator();
+  checkService().then(() => {
+    if (new URLSearchParams(location.search).get("source") === "tanjai-ai-studio") openGenerator();
+  });
 })();

@@ -6,12 +6,20 @@
   <meta name="theme-color" content="#080b17">
   <meta name="description" content="ทันใจ Video Studio — เปลี่ยนไอเดียให้เป็นวิดีโอเคลื่อนไหวพร้อมเสียง">
   <title>สร้างวิดีโอ | ทันใจ AI Studio</title>
+  <script>
+    if (location.hostname.endsWith("github.io")) {
+      const destination = new URL("https://tanjai-video-studio.onrender.com/");
+      destination.search = location.search;
+      destination.hash = location.hash;
+      location.replace(destination.toString());
+    }
+  </script>
   <link rel="icon" type="image/png" href="assets/favicon-32.png">
   <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=0.7.0">
+  <link rel="stylesheet" href="styles.css?v=0.7.1">
 </head>
 <body>
   <div class="aurora one"></div><div class="aurora two"></div>
@@ -53,6 +61,6 @@
     <footer><span><b>© 2026 ทันใจ AI Studio</b><small>สร้างสื่อไว ด้วยพลัง AI</small></span><span><small>Developed by Thanawid Sangsakol · สำหรับผู้ใช้ที่ได้รับอนุญาต</small></span></footer>
   </div>
   <dialog id="projectDialog"><div class="dialog-head"><div><small>งานที่บันทึกไว้</small><h2>เปิดงานเดิม</h2></div><button class="icon-button" id="closeProjects" type="button">×</button></div><div id="projectList" class="project-list"></div></dialog>
-  <script src="app.js?v=0.7.0"></script>
+  <script src="app.js?v=0.7.1"></script>
 </body>
 </html>
